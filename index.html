@@ -1,209 +1,110 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Fund Tracker</title>
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: linear-gradient(135deg,#1d4350,#a43931);
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
-
-    .box {
-      width: 90%;
-      max-width: 900px;
-      background: rgba(255,255,255,0.1);
-      padding: 20px;
-      border-radius: 15px;
-    }
-
-    h1 { text-align: center; }
-
-    input, select {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 5px;
-      border: none;
-    }
-
-    button {
-      padding: 10px;
-      background: #00c6ff;
-      border: none;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    table {
-      width: 100%;
-      margin-top: 20px;
-      background: white;
-      color: black;
-      border-collapse: collapse;
-    }
-
-    th, td {
-      padding: 10px;
-      border: 1px solid #ddd;
-      text-align: center;
-    }
-
-    th {
-      background: #333;
-      color: white;
-    }
-
-    .delete { background: red; }
-    .edit { background: orange; }
-
-    .balance {
-      margin-top: 15px;
-      font-size: 22px;
-      text-align: right;
-      font-weight: bold;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Fund Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="bg-gray-100 p-5 md:p-10">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center border-b pb-4">Project Fund Tracker</h1>
 
-<body>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
+                <p class="text-sm text-gray-500 uppercase font-bold">Total Balance</p>
+                <p id="totalBalance" class="text-2xl font-mono font-bold text-gray-800">$0.00</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
+                <p class="text-sm text-gray-500 uppercase font-bold text-green-600">Total Revenue</p>
+                <p id="totalRevenue" class="text-2xl font-mono font-bold text-green-600">$0.00</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500">
+                <p class="text-sm text-gray-500 uppercase font-bold text-red-600">Total Costs</p>
+                <p id="totalCost" class="text-2xl font-mono font-bold text-red-600">$0.00</p>
+            </div>
+        </div>
 
-<div class="box">
-  <h1>💰 Fund Tracker</h1>
+        <div class="bg-white p-6 rounded-xl shadow-sm mb-8">
+            <form id="transactionForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <input type="text" id="description" placeholder="Description (e.g., Sponsorship)" class="border p-2 rounded w-full" required>
+                <input type="number" id="amount" placeholder="Amount" step="0.01" class="border p-2 rounded w-full" required>
+                <select id="type" class="border p-2 rounded w-full">
+                    <option value="revenue">Revenue (+)</option>
+                    <option value="cost">Cost (-)</option>
+                </select>
+                <button type="submit" class="bg-indigo-600 text-white p-2 rounded font-bold hover:bg-indigo-700 transition">Add Entry</button>
+            </form>
+        </div>
 
-  <input type="date" id="date">
-  <input type="text" id="desc" placeholder="Description">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="p-4 font-semibold text-gray-600">Description</th>
+                        <th class="p-4 font-semibold text-gray-600">Type</th>
+                        <th class="p-4 font-semibold text-gray-600">Amount</th>
+                        <th class="p-4 font-semibold text-gray-600 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionList">
+                    </tbody>
+            </table>
+        </div>
+    </div>
 
-  <select id="type">
-    <option value="revenue">Revenue</option>
-    <option value="cost">Cost</option>
-  </select>
+    <script>
+        let transactions = JSON.parse(localStorage.getItem('project_funds')) || [];
 
-  <input type="number" id="amount" placeholder="Amount">
-  <button onclick="addData()">Add</button>
+        const form = document.getElementById('transactionForm');
+        const list = document.getElementById('transactionList');
 
-  <table>
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Description</th>
-        <th>Revenue</th>
-        <th>Cost</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
+        function updateUI() {
+            list.innerHTML = '';
+            let revenue = 0;
+            let costs = 0;
 
-  <div class="balance">
-    Balance: <span id="balance">0</span>
-  </div>
-</div>
+            transactions.forEach((t, index) => {
+                const isRevenue = t.type === 'revenue';
+                if (isRevenue) revenue += t.amount;
+                else costs += t.amount;
 
-<script>
-/* 🔥 YOUR FIREBASE CONFIG */
-const firebaseConfig = {
-  apiKey: "AIzaSyCOwwGWeNVglAKbrPInK2D1fzVtEhS77mA",
-  authDomain: "fund-tracker-d5f11.firebaseapp.com",
-  databaseURL: "https://fund-tracker-d5f11-default-rtdb.firebaseio.com",
-  projectId: "fund-tracker-d5f11",
-  storageBucket: "fund-tracker-d5f11.firebasestorage.app",
-  messagingSenderId: "227241173054",
-  appId: "1:227241173054:web:d6eecb1a9994b20672316f"
-};
+                const row = document.createElement('tr');
+                row.className = "border-b hover:bg-gray-50 transition";
+                row.innerHTML = `
+                    <td class="p-4">${t.description}</td>
+                    <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold uppercase ${isRevenue ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${t.type}</span></td>
+                    <td class="p-4 font-mono ${isRevenue ? 'text-green-600' : 'text-red-600'}">${isRevenue ? '+' : '-'}$${t.amount.toFixed(2)}</td>
+                    <td class="p-4 text-right"><button onclick="deleteTransaction(${index})" class="text-red-400 hover:text-red-600">✕</button></td>
+                `;
+                list.appendChild(row);
+            });
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database().ref("transactions");
+            document.getElementById('totalRevenue').innerText = `$${revenue.toFixed(2)}`;
+            document.getElementById('totalCost').innerText = `$${costs.toFixed(2)}`;
+            document.getElementById('totalBalance').innerText = `$${(revenue - costs).toFixed(2)}`;
+            
+            localStorage.setItem('project_funds', JSON.stringify(transactions));
+        }
 
-let editId = null;
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newTransaction = {
+                description: document.getElementById('description').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                type: document.getElementById('type').value
+            };
+            transactions.push(newTransaction);
+            form.reset();
+            updateUI();
+        });
 
-/* ADD OR UPDATE */
-function addData() {
-  let date = document.getElementById("date").value;
-  let desc = document.getElementById("desc").value;
-  let type = document.getElementById("type").value;
-  let amount = Number(document.getElementById("amount").value);
+        function deleteTransaction(index) {
+            transactions.splice(index, 1);
+            updateUI();
+        }
 
-  if (!date || !desc || !amount) {
-    alert("Fill all fields");
-    return;
-  }
-
-  if (editId) {
-    db.child(editId).set({ date, desc, type, amount });
-    editId = null;
-  } else {
-    db.push({ date, desc, type, amount });
-  }
-
-  document.getElementById("desc").value = "";
-  document.getElementById("amount").value = "";
-}
-
-/* DELETE */
-function deleteItem(id) {
-  db.child(id).remove();
-}
-
-/* EDIT */
-function editItem(id, item) {
-  document.getElementById("date").value = item.date;
-  document.getElementById("desc").value = item.desc;
-  document.getElementById("type").value = item.type;
-  document.getElementById("amount").value = item.amount;
-
-  editId = id;
-}
-
-/* LIVE DATA */
-db.on("value", (snapshot) => {
-  let data = snapshot.val();
-  let table = document.getElementById("tableBody");
-  table.innerHTML = "";
-
-  let balance = 0;
-
-  for (let id in data) {
-    let item = data[id];
-
-    let revenue = "";
-    let cost = "";
-
-    if (item.type === "revenue") {
-      revenue = item.amount;
-      balance += item.amount;
-    } else {
-      cost = item.amount;
-      balance -= item.amount;
-    }
-
-    table.innerHTML += `
-      <tr>
-        <td>${item.date}</td>
-        <td>${item.desc}</td>
-        <td>${revenue}</td>
-        <td>${cost}</td>
-        <td>
-          <button class="edit" onclick='editItem("${id}", ${JSON.stringify(item)})'>Edit</button>
-          <button class="delete" onclick='deleteItem("${id}")'>Delete</button>
-        </td>
-      </tr>
-    `;
-  }
-
-  document.getElementById("balance").innerText = balance;
-});
-</script>
-
+        updateUI(); // Initial Load
+    </script>
 </body>
 </html>
