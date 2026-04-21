@@ -8,9 +8,8 @@
       background: #f4f6f8;
       text-align: center;
     }
-    h1 {
-      color: #2c3e50;
-    }
+    h1 { color: #2c3e50; }
+
     .container {
       background: white;
       padding: 20px;
@@ -19,10 +18,9 @@
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    input, select {
-      padding: 8px;
-      margin: 5px;
-    }
+
+    input, select { padding: 8px; margin: 5px; }
+
     button {
       padding: 8px 15px;
       background: #27ae60;
@@ -30,23 +28,33 @@
       border: none;
       cursor: pointer;
     }
+
     table {
       width: 100%;
       margin-top: 20px;
       border-collapse: collapse;
     }
+
     th, td {
       border: 1px solid #ddd;
       padding: 10px;
     }
+
     th {
       background: #2c3e50;
       color: white;
     }
+
     .balance {
       font-size: 20px;
       margin-top: 15px;
       font-weight: bold;
+    }
+
+    .delete-btn {
+      background: red;
+      padding: 5px;
+      font-size: 12px;
     }
   </style>
 </head>
@@ -58,7 +66,7 @@
 <div class="container">
   <input type="date" id="date">
   <input type="text" id="desc" placeholder="Description">
-  
+
   <select id="type">
     <option value="revenue">Revenue</option>
     <option value="cost">Cost</option>
@@ -73,6 +81,7 @@
       <th>Description</th>
       <th>Revenue</th>
       <th>Cost</th>
+      <th>Action</th>
     </tr>
   </table>
 
@@ -82,43 +91,78 @@
 </div>
 
 <script>
-  let balance = 0;
+let transactions = JSON.parse(localStorage.getItem("data")) || [];
+let balance = 0;
 
-  function addTransaction() {
-    let date = document.getElementById("date").value;
-    let desc = document.getElementById("desc").value;
-    let type = document.getElementById("type").value;
-    let amount = Number(document.getElementById("amount").value);
+function saveData() {
+  localStorage.setItem("data", JSON.stringify(transactions));
+}
 
-    if (!date || !desc || !amount) {
-      alert("Please fill all fields");
-      return;
-    }
+function renderTable() {
+  let table = document.getElementById("table");
 
-    let table = document.getElementById("table");
+  table.innerHTML = `
+    <tr>
+      <th>Date</th>
+      <th>Description</th>
+      <th>Revenue</th>
+      <th>Cost</th>
+      <th>Action</th>
+    </tr>
+  `;
+
+  balance = 0;
+
+  transactions.forEach((t, index) => {
     let row = table.insertRow();
 
-    let rev = "";
-    let cost = "";
+    let rev = t.type === "revenue" ? t.amount : "";
+    let cost = t.type === "cost" ? t.amount : "";
 
-    if (type === "revenue") {
-      balance += amount;
-      rev = amount;
-    } else {
-      balance -= amount;
-      cost = amount;
-    }
+    if (t.type === "revenue") balance += t.amount;
+    else balance -= t.amount;
 
-    row.insertCell(0).innerText = date;
-    row.insertCell(1).innerText = desc;
+    row.insertCell(0).innerText = t.date;
+    row.insertCell(1).innerText = t.desc;
     row.insertCell(2).innerText = rev;
     row.insertCell(3).innerText = cost;
 
-    document.getElementById("balance").innerText = balance;
+    let actionCell = row.insertCell(4);
+    actionCell.innerHTML = `
+      <button class="delete-btn" onclick="deleteTransaction(${index})">Delete</button>
+    `;
+  });
 
-    document.getElementById("desc").value = "";
-    document.getElementById("amount").value = "";
+  document.getElementById("balance").innerText = balance;
+}
+
+function addTransaction() {
+  let date = document.getElementById("date").value;
+  let desc = document.getElementById("desc").value;
+  let type = document.getElementById("type").value;
+  let amount = Number(document.getElementById("amount").value);
+
+  if (!date || !desc || !amount) {
+    alert("Please fill all fields");
+    return;
   }
+
+  transactions.push({ date, desc, type, amount });
+  saveData();
+  renderTable();
+
+  document.getElementById("desc").value = "";
+  document.getElementById("amount").value = "";
+}
+
+function deleteTransaction(index) {
+  transactions.splice(index, 1);
+  saveData();
+  renderTable();
+}
+
+// initial load
+renderTable();
 </script>
 
 </body>
