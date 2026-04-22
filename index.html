@@ -42,19 +42,19 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 text-center">
             <div class="glass-card p-6 rounded-2xl shadow-lg border-t-4 border-t-slate-500">
-                <p class="text-xs font-bold text-slate-400 uppercase mb-2">Net Balance</p>
-                <span id="totalBalance" class="text-3xl font-bold text-slate-900 font-mono text-emerald-600">Rs. 0.00</span>
+                <p class="text-xs font-bold text-slate-400 uppercase mb-2 text-left">Net Balance</p>
+                <span id="totalBalance" class="text-3xl font-bold text-slate-900 font-mono">Rs. 0.00</span>
             </div>
 
             <div class="glass-card p-6 rounded-2xl shadow-lg border-t-4 border-t-emerald-500 text-emerald-600">
-                <p class="text-xs font-bold uppercase mb-2">Total Revenue</p>
+                <p class="text-xs font-bold uppercase mb-2 text-left">Total Revenue</p>
                 <span id="totalRevenue" class="text-3xl font-bold font-mono">Rs. 0.00</span>
             </div>
 
             <div class="glass-card p-6 rounded-2xl shadow-lg border-t-4 border-t-rose-500 text-rose-600">
-                <p class="text-xs font-bold uppercase mb-2">Total Costs</p>
+                <p class="text-xs font-bold uppercase mb-2 text-left">Total Costs</p>
                 <span id="totalCost" class="text-3xl font-bold font-mono">Rs. 0.00</span>
             </div>
         </div>
@@ -76,7 +76,7 @@
                         </tr>
                     </thead>
                     <tbody id="transactionList" class="divide-y divide-slate-100 text-slate-700">
-                        <tr><td colspan="3" class="px-6 py-10 text-center text-slate-400 italic">Connecting...</td></tr>
+                        <tr><td colspan="3" class="px-6 py-10 text-center text-slate-400 italic">Connecting to Hope Bridge database...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -90,8 +90,8 @@
     </div>
 
     <script>
-        // The URL you provided
-        const baseCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXLZ_1VvkSTy7tyquOVn4EkzpT57lwza7_OEZFHrCPmLSaVcBxzu8Qr-po8CYO07tlCzGS0-diCC5Y/pub?output=csv';
+        // NEW UPDATED CSV LINK
+        const baseCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSxCmM-pnye0gF-Oop2Aof_BLQ24Y3zVb9GZhDaIJlKYdiW6AOW9uFL4ZK1I3vRtUSd02pFrkMR7Nnp/pub?output=csv';
 
         async function fetchData() {
             const statusEl = document.getElementById('syncStatus');
@@ -99,7 +99,7 @@
             const dot = document.getElementById('statusDot');
 
             try {
-                // ADDING A TIMESTAMP TO FORCE REFRESH (CACHE BUSTING)
+                // Cache busting to ensure fresh data
                 const cacheBuster = `&t=${new Date().getTime()}`;
                 const response = await fetch(baseCsvUrl + cacheBuster);
                 
@@ -109,6 +109,7 @@
                 const rows = csvData.split('\n').slice(1);
 
                 const transactions = rows.map(row => {
+                    // Match Item Description, Amount, Classification
                     const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     if (cols.length < 3) return null;
                     return {
@@ -133,7 +134,6 @@
         }
 
         function formatCurrency(num) {
-            // Formats to LKR Style (e.g., Rs. 1,500.00)
             return "Rs. " + num.toLocaleString('en-LK', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
@@ -151,7 +151,7 @@
 
                 const row = `
                     <tr class="hover:bg-white/60 transition-colors">
-                        <td class="px-6 py-4 font-semibold text-slate-800 capitalize">${item.desc}</td>
+                        <td class="px-6 py-4 font-semibold text-slate-800">${item.desc}</td>
                         <td class="px-6 py-4 text-center">
                             <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${isRevenue ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
                                 ${item.type.toUpperCase()}
@@ -171,16 +171,11 @@
             const balance = totalRev - totalCost;
             const balanceEl = document.getElementById('totalBalance');
             balanceEl.innerText = formatCurrency(balance);
-            
-            // Turn balance red if you are in debt!
             balanceEl.className = `text-3xl font-bold font-mono ${balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
         }
 
-        // Run on load
         fetchData();
-        
-        // AUTO-REFRESH EVERY 20 SECONDS
-        setInterval(fetchData, 20000);
+        setInterval(fetchData, 20000); 
     </script>
 </body>
 </html>
